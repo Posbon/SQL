@@ -4,8 +4,9 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class Data {
 
+
+public class Data {
     public static void data() throws SQLException {
         String deleteCardTransactions = "delete from card_transactions;";
         String deleteCards = "delete from cards;";

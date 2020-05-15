@@ -1,9 +1,6 @@
 import com.codeborne.selenide.SelenideElement;
-import com.github.javafaker.Faker;
+import lombok.Value;
 import lombok.val;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -12,27 +9,35 @@ import static com.codeborne.selenide.Condition.visible;
 import static com.codeborne.selenide.Selenide.$;
 import static com.codeborne.selenide.Selenide.open;
 
-public class AuthTest {
-    @BeforeAll
-    static void newUser () throws SQLException {
-        val faker = new Faker();
-        val dataSQL = "INSERT INTO users(id, login, password) VALUES (?, ?, ?);";
-        try (val conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/app", "app", "pass");
-             val dataStmt = conn.prepareStatement(dataSQL);) {
-            dataStmt.setString(1, faker.bothify("********"));
-            dataStmt.setString(2, "test");
-            dataStmt.setString(3, "pass");
-            dataStmt.executeUpdate();
-        }
+public class DataHelper {
+    @Value
+    public static class AuthInfo {
+        private String login;
+        private String password;
     }
 
-    @AfterAll
-    static void clearData () throws SQLException {
-        Data.data();
+    public static AuthInfo getAuthInfo() {
+        return new AuthInfo("vasya", "qwerty123");
     }
 
-    @Test
-    void validLoginTest () throws SQLException {
+    @Value
+    public static class VerificationCode {
+        private String code;
+    }
+
+    public static VerificationCode getVerificationCodeFor(AuthInfo authInfo) {
+        return new VerificationCode("12345");
+    }
+
+    public VerificationPage validLogin(DataHelper.AuthInfo info) {
+        $("[data-test-id=login] input").setValue(info.getLogin());
+        $("[data-test-id=password] input").setValue(info.getPassword());
+        $("[data-test-id=action-login]").click();
+        return new VerificationPage();
+    }
+
+
+    public static void getAuthInfo(String status) throws SQLException {
         SelenideElement codeField = $("[data-test-id=code] input");
         SelenideElement verifyBtn = $("[data-test-id=action-verify]");
         val authSQL = "select a.code from auth_codes a, users u where a.user_id=u.id and u.login= ? order by a.created desc limit 1;";
@@ -51,8 +56,6 @@ public class AuthTest {
                     codeField.setValue(auth_code);
                 }
             }
-            verifyBtn.shouldBe(visible).click();
-            $("[data-test-id=dashboard]").waitUntil(visible, 1000);
         }
     }
 }
